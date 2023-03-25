@@ -12,6 +12,13 @@ const getGamepadData = (gamepad: Gamepad): GamepadData => {
   };
 };
 
+/**
+ * Returns whether the browser supports the Gamepad API and the
+ * `ongamepadconnected` event. True in Firefox, false in Chrome.
+ * Chrome requires polling every frame to get the gamepad state.
+ */
+const hasAutoGamepad = (): boolean => 'ongamepadconnected' in window;
+
 function App() {
   const [gamepads, setGamepads] = useState<Gamepad[]>([]);
   const gamepadsRef = useRef<Gamepad[]>([]);
@@ -19,18 +26,16 @@ function App() {
   const animationRef = useRef<number>();
 
   useEffect(() => {
-    console.log('set gamepad data useeffect ran');
     if (gamepads.length === 0) {
-      setGamepadData('Press a button on your gamepad after connecting');
+      setGamepadData((_) => 'Press a button on your gamepad after connecting');
       return;
     }
 
-    setGamepadData(JSON.stringify(gamepads.map(getGamepadData)));
+    setGamepadData((_) => JSON.stringify(gamepads.map(getGamepadData)));
   }, [gamepads]);
 
   // Whenever gamepads changes, update the ref
   useEffect(() => {
-    console.log('gamepad ref update ref ran');
     gamepadsRef.current = gamepads;
   }, [gamepads]);
 
@@ -43,14 +48,18 @@ function App() {
   };
 
   const animate = () => {
-    // setGamepads((gamepads) =>
-    //   navigator.getGamepads && navigator.getGamepads().filter((x) => x !== null).length > 0
-    //     ? (navigator.getGamepads() as Gamepad[]) ?? gamepads
-    //     : gamepads
-    // );
-    // const currGamepads = gamepads;
-
+    // TODO: Make this more efficient
     const currGamepads = gamepadsRef.current;
+
+    if (currGamepads[0] && !hasAutoGamepad()) {
+      const gamePadsFromNavigator = navigator.getGamepads()?.filter((x) => x !== null) as Gamepad[];
+      setGamepads((_) => gamePadsFromNavigator);
+      const currentGamepad = gamePadsFromNavigator.find((x) => x?.id === currGamepads[0]?.id);
+
+      if (currentGamepad) {
+        // console.log(gamePadsFromNavigator.buttons.map((x) => x.pressed));
+      }
+    }
 
     // TODO: the gamepad buttons are not updated in the gamepad state
     if (currGamepads?.length !== 0) {
@@ -72,14 +81,12 @@ function App() {
   };
 
   useEffect(() => {
-    console.log('requestanimationframe setup useeffect ran');
     animationRef.current = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(animationRef.current as number);
   }, []);
 
   useEffect(() => {
-    console.log('gamepad connect event listeners useeffect ran');
     window.addEventListener('gamepadconnected', handleGamepadConnected);
     window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
 
@@ -91,18 +98,22 @@ function App() {
 
   return (
     <div className="App">
-      <header>Gamepad data</header>
+      <h3>Gamepad data</h3>
+      <p>(Only supports one gamepad at a time)</p>
       <p>{gamepadData}</p>
-      <div className="gamepadbutton btn0">0</div>
-      <div className="gamepadbutton btn1">1</div>
-      <div className="gamepadbutton btn2">2</div>
-      <div className="gamepadbutton btn3">3</div>
-      <div className="gamepadbutton btn4">4</div>
-      <div className="gamepadbutton btn5">5</div>
-      <div className="gamepadbutton btn6">6</div>
-      <div className="gamepadbutton btn7">7</div>
-      <div className="gamepadbutton btn8">8</div>
-      <div className="gamepadbutton btn9">9</div>
+      {/* TODO: Make as many divs as buttons_length */}
+      <div className="gamepadbuttons">
+        <div className="gamepadbutton btn0">0</div>
+        <div className="gamepadbutton btn1">1</div>
+        <div className="gamepadbutton btn2">2</div>
+        <div className="gamepadbutton btn3">3</div>
+        <div className="gamepadbutton btn4">4</div>
+        <div className="gamepadbutton btn5">5</div>
+        <div className="gamepadbutton btn6">6</div>
+        <div className="gamepadbutton btn7">7</div>
+        <div className="gamepadbutton btn8">8</div>
+        <div className="gamepadbutton btn9">9</div>
+      </div>
     </div>
   );
 }
